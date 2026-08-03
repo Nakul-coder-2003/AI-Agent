@@ -1,0 +1,8 @@
+## gatway server
+backend/gatway/node_modules/
+backend/gatway/.env
+
+## auth server
+backend/services/auth/node_modules/
+backend/services/auth/.env
+
