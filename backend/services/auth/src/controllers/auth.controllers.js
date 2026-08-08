@@ -5,7 +5,9 @@ import { catchAsync } from "../utils/catchAsync.js";
 import generateToken from "../utils/token.js";
 import uploadOnCloudinary from "../config/cloudinary.js";
 import jwt, { decode } from "jsonwebtoken";
-import redisClient from "../config/redis.js";
+import redis from "../config/redis.js";
+import { generateAndSaveOtp } from "../utils/sendOtp.js";
+
 
 export const signup = catchAsync(async (req, res, next) => {
   const { userName, email, password, firstName, lastName } = req.body;
@@ -109,7 +111,7 @@ export const logout = catchAsync(async (req, res, next) => {
       if (decoded && decoded.exp) {
         const expiresIn = decoded.exp - Math.floor(Date.now() / 1000);
         if (expiresIn > 0) {
-          await redisClient.setEx(`bl_${token}`, expiresIn, "blacklisted");
+          await redis.setex(`bl_${token}`, expiresIn, "blacklisted");
         }
       }
     } catch (error) {
@@ -120,4 +122,57 @@ export const logout = catchAsync(async (req, res, next) => {
   res.clearCookie('accessToken');
   res.clearCookie('refreshToken');
   res.status(200).json({ message: "Logout successful" });
+});
+
+export const forgetPassword = catchAsync(async (req, res, next) => {
+  const { email } = req.body;
+  const user = await userModel.findOne({ email });
+
+  if (!user) return next(new AppError("user not found",400));
+
+  await generateAndSaveOtp(email)
+  return res
+    .status(200)
+    .json({ message: "Password reset OTP has been sent to your email" });
+});
+
+export const verifyOtp = catchAsync(async (req, res, next) => {
+  const { email, otp } = req.body;
+  if (!email || !otp)
+    return res.status(400).json({ message: "Email and otp is required" });
+
+  const otpRecord = await redis.get(`otp_${email}`);
+  
+  if (!otpRecord || otpRecord !== otp) {
+    return res
+      .status(400)
+      .json({ success: false, message: "Invalid or expired otp" });
+  }
+
+  await redis.del(`otp_${email}`);
+
+  return res
+    .status(200)
+    .json({ message: "OTP verified successfully", isVerified: true });
+});
+
+
+export const resetPassword = catchAsync(async (req, res, next) => {
+  const { email, newPassword } = req.body;
+
+  if (!newPassword || newPassword.length < 6) {
+    return next(new AppError("Invalid",400))
+  }
+
+  const salt = await bcrypt.genSalt(10);
+  const hashPassword = await bcrypt.hash(newPassword, salt);
+
+  await userModel.findOneAndUpdate({ email }, { password: hashPassword });
+
+  return res
+    .status(200)
+    .json({
+      success: true,
+      message: "Password reset successfully. Please login.",
+    });
 });

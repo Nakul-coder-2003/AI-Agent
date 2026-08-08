@@ -1,13 +1,13 @@
 import express from "express";
 import { uploadFile } from "../middlewares/mullter.middleware.js";
-import { login, logout, signup } from "../controllers/auth.controllers.js";
+import { forgetPassword, login, logout, resetPassword, signup, verifyOtp } from "../controllers/auth.controllers.js";
 const authRouter = express.Router();
 
 authRouter.post("/signup",uploadFile.single("profileImg"),signup);
-authRouter.post("/login",login);
+authRouter.get("/login",login);
 authRouter.post("/logout",logout);
-authRouter.get("/getuser",(req,res)=>{
-    return res.json("hello users")
-})
+authRouter.post("/forget-password",forgetPassword);
+authRouter.post("/verify-otp",verifyOtp);
+authRouter.post("/reset-pass",resetPassword);
 
 export default authRouter;
