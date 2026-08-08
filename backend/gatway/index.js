@@ -2,6 +2,8 @@ import express from "express"
 import dotenv from "dotenv"
 import proxy from "express-http-proxy";
 import cors from "cors";
+import authenticate from "./middleware/auth.middleware.js";
+import { getCurrentUser } from "./controllers/user.controller.js";
 
 const app = express();
 dotenv.config();
@@ -12,11 +14,13 @@ const corsOptions = {
 }
 app.use(cors());
 
-app.use("/auth",proxy(process.env.AUTH_SERVER_URL,{
+app.use("/api/auth",proxy(process.env.AUTH_SERVER_URL,{
     proxyReqPathResolver: (req) => {
-        return "/auth" + req.url;
+        return "/api/auth" + req.url;
     }
 }))
+
+app.use("/api/me",authenticate,getCurrentUser);
 
 app.use(express.json());
 

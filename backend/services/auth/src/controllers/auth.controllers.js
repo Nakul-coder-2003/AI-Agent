@@ -1,15 +1,17 @@
 import userModel from "../models/user.model.js";
-import bcrypt from "bcrypt"
+import bcrypt from "bcrypt";
 import AppError from "../utils/AppError.js";
 import { catchAsync } from "../utils/catchAsync.js";
 import generateToken from "../utils/token.js";
 import uploadOnCloudinary from "../config/cloudinary.js";
+import jwt, { decode } from "jsonwebtoken";
+import redisClient from "../config/redis.js";
 
 export const signup = catchAsync(async (req, res, next) => {
   const { userName, email, password, firstName, lastName } = req.body;
 
   if (!userName || !email || !password || !firstName || !lastName) {
-    return next(new AppError("Please fill all required details",400))
+    return next(new AppError("Please fill all required details", 400));
   }
 
   let profileImg;
@@ -22,9 +24,9 @@ export const signup = catchAsync(async (req, res, next) => {
   });
 
   if (isUserAlreadyExists) {
-    return next(new AppError("Account already exists",400))
+    return next(new AppError("Account already exists", 400));
   }
-  
+
   const hash = await bcrypt.hash(password, 10);
 
   const newUser = await userModel.create({
@@ -36,10 +38,23 @@ export const signup = catchAsync(async (req, res, next) => {
     profileImg,
   });
 
-  const token = generateToken(newUser._id);
+  const { accessToken, refreshToken } = generateToken(newUser._id);
+
+  res.cookie("accessToken", accessToken, {
+    httpOnly: true,
+    secure: false,
+    sameSite: "strict",
+    maxAge: 15 * 60 * 1000,
+  });
+
+  res.cookie("refreshToken", refreshToken, {
+    httpOnly: true,
+    secure: false,
+    sameSite: "strict",
+    maxAge: 7 * 24 * 60 * 60 * 1000,
+  });
 
   res
-    .cookie("token", token)
     .status(200)
     .json({ message: "user register successfully!" });
 });
@@ -50,41 +65,59 @@ export const login = catchAsync(async (req, res, next) => {
   const user = await userModel.findOne({ email }).select("+password");
 
   if (!user) {
-    return next(new AppError("Invalid user",400))
+    return next(new AppError("Invalid user", 400));
   }
 
   const isPasswordValid = await bcrypt.compare(password, user.password);
 
   if (!isPasswordValid) {
-    return next(new AppError("Invalid crendials",400))
+    return next(new AppError("Invalid crendials", 400));
   }
 
-  const token = generateToken(user._id);
+  const { accessToken, refreshToken } = generateToken(user._id);
 
-  res
-    .cookie("token", token)
-    .status(200)
-    .json({
-      message: "user login successfully!",
-      user: {
-        id: user._id,
-        userName: user.userName,
-        email: user.email,
-      },
-    });
+  res.cookie("accessToken", accessToken, {
+    httpOnly: true,
+    secure: false,
+    sameSite: "strict",
+    maxAge: 15 * 60 * 1000,
+  });
+
+  res.cookie("refreshToken", refreshToken, {
+    httpOnly: true,
+    secure: false,
+    sameSite: "strict",
+    maxAge: 7 * 24 * 60 * 60 * 1000,
+  });
+
+  res.status(200).json({
+    message: "user login successfully!",
+    user: {
+      id: user._id,
+      userName: user.userName,
+      email: user.email,
+    },
+  });
 });
 
 export const logout = catchAsync(async (req, res, next) => {
-  const token = req.cookies.token;
+  const token = req.cookies.accessToken;
 
-  // if (token) {
-  //   await blocklistModel.create({ token });
-  // }
+  if (token) {
+    try {
+      const decoded = jwt.decode(token);
+      if (decoded && decoded.exp) {
+        const expiresIn = decoded.exp - Math.floor(Date.now() / 1000);
+        if (expiresIn > 0) {
+          await redisClient.setEx(`bl_${token}`, expiresIn, "blacklisted");
+        }
+      }
+    } catch (error) {
+      console.error("Logout Error:", error);
+    }
+  }
 
-  res.clearCookie("token").json({ message: "user logout successfully" });
+  res.clearCookie('accessToken');
+  res.clearCookie('refreshToken');
+  res.status(200).json({ message: "Logout successful" });
 });
-
-
-
-
-

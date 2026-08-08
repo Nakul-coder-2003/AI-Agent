@@ -1,9 +1,20 @@
 import jwt from "jsonwebtoken"
 
-const generateToken = (id)=>{
+const generateToken = (userId)=>{
    try {
-      let token = jwt.sign({id},process.env.JWT_SECERET,{expiresIn:'7d'});
-      return token;
+      const accessToken = jwt.sign(
+         {id:userId},
+         process.env.JWT_ACCESS_SECRET,
+         {expiresIn: '15m'}
+      )
+
+      const refreshToken = jwt.sign(
+         {id:userId},
+         process.env.JWT_REFRESH_SECRET,
+         {expiresIn : '7d'}
+      )
+
+      return { accessToken, refreshToken};
    } catch (error) {
       console.log(`token error ${error}`)
    }
