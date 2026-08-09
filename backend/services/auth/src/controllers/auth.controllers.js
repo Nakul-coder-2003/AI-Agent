@@ -156,7 +156,6 @@ export const verifyOtp = catchAsync(async (req, res, next) => {
     .json({ message: "OTP verified successfully", isVerified: true });
 });
 
-
 export const resetPassword = catchAsync(async (req, res, next) => {
   const { email, newPassword } = req.body;
 

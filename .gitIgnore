@@ -6,6 +6,10 @@ backend/gatway/.env
 backend/services/auth/node_modules/
 backend/services/auth/.env
 
+## auth server
+backend/services/agent/node_modules/
+backend/services/agent/.env
+
 ## frontend
 frontend/node_modules
 frontend/.env

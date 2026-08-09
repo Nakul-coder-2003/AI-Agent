@@ -20,6 +20,12 @@ app.use("/api/auth",proxy(process.env.AUTH_SERVER_URL,{
     }
 }))
 
+app.use("/api/agent",proxy(process.env.AGENT_SERVER_URL,{
+    proxyReqPathResolver: (req) => {
+        return "/api/agent" + req.url;
+    }
+}))
+
 app.use("/api/me",authenticate,getCurrentUser);
 
 app.use(express.json());
