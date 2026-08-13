@@ -14,6 +14,7 @@ const router = async (state) => {
     - "imageAnalyzer": Route here if the user's input implies analyzing or understanding an image.
     - "search": Route here if the user is asking for real-time information, news, or facts that require web search.
     - "chat": Route here for general conversation, greetings, or anything else that doesn't fit the above.
+    - "pdfRag": Route here if the user asks questions about uploaded documents, PDFs, or specific file context.
     
     CRITICAL: You must respond ONLY with the exact single word name of the agent. Do not add any extra punctuation, spaces, or words.`;
 
@@ -27,7 +28,7 @@ const router = async (state) => {
     const nextAgent = response.content.trim();
     console.log("🚦 Router decided the next agent will be:", nextAgent);
 
-    const validAgents = ["coding", "imageAnalyzer", "search", "chat"];
+    const validAgents = ["coding", "imageAnalyzer", "search", "chat","pdfRag"];
     if (validAgents.includes(nextAgent)) {
         return nextAgent;
     }

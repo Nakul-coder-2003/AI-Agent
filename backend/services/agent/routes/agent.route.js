@@ -1,8 +1,16 @@
 import express from "express"
-import { agentController } from "../controllers/agent.controller.js";
+import multer from "multer"
+import { createRequire } from 'module';
+const require = createRequire(import.meta.url);
+const pdfParse = require('pdf-parse');
+import { agentController, pdfUploadController } from "../controllers/agent.controller.js";
+
+// Multer ko memory mein file save karne ke liye setup karo
+const upload = multer({ storage: multer.memoryStorage() });
 
 const agentRoute = express.Router();
 
 agentRoute.post("/chat",agentController);
+agentRoute.post("/upload-pdf", upload.single('file'), pdfUploadController)
 
 export default agentRoute;
