@@ -1,6 +1,7 @@
 import express from "express"
 import dotenv from "dotenv"
 import cors from "cors"
+import agentRoute from "./routes/agent.route.js";
 
 const app = express();
 dotenv.config();
@@ -14,6 +15,8 @@ app.get('/api/agent', (req, res) => {
         message: "Agent Service is up and running!",
     });
 });
+
+app.use("/api/agent",agentRoute);
 
 const PORT = process.env.PORT;
 

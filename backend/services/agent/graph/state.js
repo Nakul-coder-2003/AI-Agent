@@ -1,5 +1,5 @@
-const { Annotation } = require("@langchain/langgraph");
-const { BaseMessage } = require("@langchain/core/messages");
+import { Annotation } from "@langchain/langgraph";
+import { BaseMessage } from "@langchain/core/messages";
 
 const AgentState = Annotation.Root({
     messages: Annotation({
