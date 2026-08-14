@@ -1,8 +1,5 @@
 import express from "express"
 import multer from "multer"
-import { createRequire } from 'module';
-const require = createRequire(import.meta.url);
-const pdfParse = require('pdf-parse');
 import { agentController, pdfUploadController } from "../controllers/agent.controller.js";
 
 // Multer ko memory mein file save karne ke liye setup karo

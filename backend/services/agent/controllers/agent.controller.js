@@ -3,9 +3,8 @@ import graph from "../graph/graph.js";
 import { GoogleGenerativeAIEmbeddings } from "@langchain/google-genai";
 import { SupabaseVectorStore } from "@langchain/community/vectorstores/supabase";
 import { createClient } from "@supabase/supabase-js";
-import { createRequire } from 'module';
-const require = createRequire(import.meta.url);
-const pdfParse = require('pdf-parse');
+import { RecursiveCharacterTextSplitter } from '@langchain/textsplitters';
+import { WebPDFLoader } from "@langchain/community/document_loaders/web/pdf";
 
 import dotenv from "dotenv"
 dotenv.config();
@@ -42,10 +41,17 @@ export const pdfUploadController = async (req, res) => {
     }
 
     console.log("📄 PDF Received, starting extraction...");
+    
+    const blob = new Blob([req.file.buffer], { type: 'application/pdf' });
+    console.log(blob);
 
-    // 1. PDF se Text nikalna
-    const pdfData = await pdfParse(req.file.buffer);
-    const rawText = pdfData.text;
+    // 2. LangChain loader se PDF load karna
+    const loader = new WebPDFLoader(blob);
+    const rawDocs = await loader.load();
+
+    if (!rawDocs || rawDocs.length === 0) {
+       return res.status(400).json({ error: "Could not extract text from this PDF." });
+    }
 
     // 2. Text ko chote tukdo (Chunks) mein todna
     // Ek bada PDF direct DB mein nahi jata, uske 1000 characters ke chunks banaye jate hain
@@ -53,11 +59,24 @@ export const pdfUploadController = async (req, res) => {
       chunkSize: 1000,
       chunkOverlap: 200, // Thoda overlap taaki context break na ho
     });
-    const docs = await splitter.createDocuments([rawText]);
+    const docs = await splitter.splitDocuments(rawDocs);
 
     console.log(
       `✂️ PDF split into ${docs.length} chunks. Generating Embeddings...`,
     );
+
+    // FIX 1: PDF se aane wale ajeeb characters (null bytes) ko hatana aur chote chunks ko filter karna
+    const validDocs = docs.map(doc => {
+      // \0 (null characters) ko hata rahe hain
+      doc.pageContent = doc.pageContent.replace(/\0/g, '').trim();
+      return doc;
+    }).filter(doc => doc.pageContent.length > 5); // Sirf wahi chunks rakho jisme actual meaning ho
+
+    console.log(`🧹 Cleaned docs count: ${validDocs.length}`);
+
+    if (validDocs.length === 0) {
+       return res.status(400).json({ error: "PDF text is empty or invalid after cleaning." });
+    }
 
     // 3. Supabase aur Gemini Embeddings Setup
     const client = createClient(
@@ -67,8 +86,18 @@ export const pdfUploadController = async (req, res) => {
 
     const embeddings = new GoogleGenerativeAIEmbeddings({
       apiKey: process.env.GEMINI_API_KEY,
-      modelName: "text-embedding-004",
+      modelName: "gemini-embedding-001",
     });
+
+    // FIX 2: Supabase ko bhejne se pehle Gemini API ka ek chota sa Test
+    try {
+      console.log("🧪 Testing Gemini Embedding API...");
+      const testVector = await embeddings.embedQuery("Test");
+      console.log(`✅ Gemini working! Vector length: ${testVector?.length}`); 
+    } catch (e) {
+      console.error("❌ Gemini API Error:", e);
+      return res.status(500).json({ error: "Gemini API failed to generate embeddings." });
+    }
 
     // 4. Vector DB (Supabase) mein save karna
     await SupabaseVectorStore.fromDocuments(docs, embeddings, {

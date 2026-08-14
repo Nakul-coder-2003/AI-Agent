@@ -2,6 +2,7 @@ import { getModel } from "../config/llmModels.js";
 import {GoogleGenerativeAIEmbeddings} from "@langchain/google-genai"
 import { SupabaseVectorStore } from "@langchain/community/vectorstores/supabase";
 import { createClient } from "@supabase/supabase-js";
+import { SystemMessage } from "@langchain/core/messages";
 import dotenv from "dotenv"
 dotenv.config();
 
@@ -20,7 +21,7 @@ export const pdfRagAgent = async (state) => {
     // 2. Embeddings Setup (Text ko numbers mein convert karne ki machine)
     const embeddings = new GoogleGenerativeAIEmbeddings({
         apiKey: process.env.GOOGLE_API_KEY,
-        modelName: "text-embedding-004", // Gemini ka latest embedding model
+        modelName: "gemini-embedding-001", // Gemini ka latest embedding model
     });
 
     // 3. Vector DB se connection banayenge
