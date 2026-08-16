@@ -6,9 +6,13 @@ backend/gatway/.env
 backend/services/auth/node_modules/
 backend/services/auth/.env
 
-## auth server
+## agent server
 backend/services/agent/node_modules/
 backend/services/agent/.env
+
+## chat server
+backend/services/chat/node_modules/
+backend/services/chat/.env
 
 ## frontend
 frontend/node_modules
