@@ -27,7 +27,7 @@ const authenticate = async(req,res,next) => {
             return res.status(401).json({ message: "Token Expired", code: "TOKEN_EXPIRED" });
             // Frontend is code ko dekh kar automatic refresh token API call karega
         }
-        return res.status(400).json({ message: "Invalid Token" });
+        return res.status(400).json({ message: "Invalid Token",error:error });
     }
 }
 

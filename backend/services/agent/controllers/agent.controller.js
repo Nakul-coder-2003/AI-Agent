@@ -1,4 +1,4 @@
-import { HumanMessage } from "@langchain/core/messages";
+import { HumanMessage,AIMessage } from "@langchain/core/messages";
 import graph from "../graph/graph.js";
 import { GoogleGenerativeAIEmbeddings } from "@langchain/google-genai";
 import { SupabaseVectorStore } from "@langchain/community/vectorstores/supabase";
@@ -11,14 +11,28 @@ dotenv.config();
 
 export const agentController = async (req, res) => {
   try {
-    const { prompt } = req.body;
+    //NAYA: req.body se history bhi nikal lo (default empty array de do)
+    const { prompt,history = [] } = req.body;
     if (!prompt) {
       return res.status(400).json({ error: "Prompt is required" });
     }
     console.log(`\n📬 New Prompt received: "${prompt}"`);
 
+    //NAYA: History ko LangChain ke format mein convert karo
+    const formattedHistory = history.map(msg => {
+        // Chat service se 'user' ya 'model' aayega
+        if (msg.role === 'user') {
+            return new HumanMessage(msg.parts);
+        } else {
+            return new AIMessage(msg.parts);
+        }
+    });
+
+    // 3. Purani saari baatein aur tumhara naya sawal ek array mein combine karo
+    const allMessages = [...formattedHistory, new HumanMessage(prompt)];
+
     const result = await graph.invoke({
-      messages: [new HumanMessage(prompt)],
+      messages: allMessages
     });
 
     const finalMessage = result.messages[result.messages.length - 1].content;

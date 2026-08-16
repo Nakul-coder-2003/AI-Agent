@@ -82,7 +82,7 @@ export const login = catchAsync(async (req, res, next) => {
     httpOnly: true,
     secure: false,
     sameSite: "strict",
-    maxAge: 15 * 60 * 1000,
+    maxAge: 1 * 24 * 60 * 60 * 1000,
   });
 
   res.cookie("refreshToken", refreshToken, {
