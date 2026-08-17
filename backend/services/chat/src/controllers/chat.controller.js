@@ -39,11 +39,50 @@ export const getMessages = async (req, res) => {
 export const sendMessage = async (req, res) => {
   try {
     const userId = req.user.id;
-    console.log(userId);
     const { prompt, conversationId } = req.body;
 
     if (!prompt) {
       return res.status(400).json({ error: "Prompt is required" });
+    }
+
+    try {
+      console.log("💳 Checking wallet balance...");
+      const paymentRes = await fetch(
+        "http://localhost:8004/api/payment/deduct",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-user-id": userId,
+          },
+        },
+      );
+      console.log(paymentRes);
+      
+      //  Agar URL galat hai ya 404 aaya hai, toh HTML parse karne se pehle roko
+      if (!paymentRes.ok) {
+        const errorText = await paymentRes.text();
+        console.error("❌ Payment Service Error:", errorText);
+        // return zaroori hai taaki 'Headers sent' wala error na aaye
+        return res
+          .status(paymentRes.status)
+          .json({ error: "Failed to reach Payment service." });
+      }
+
+      const paymentData = await paymentRes.json();
+      console.log(paymentData);
+      if (!paymentData.success) {
+        return res.status(403).json({
+          error: "Insufficient credits. Please recharge your wallet.",
+        });
+
+        console.log(
+          `✅ Credit deducted! Remaining Balance: ${paymentData.remainingBalance}`,
+        );
+      }
+    } catch (error) {
+      console.log(error);
+      res.status(400).json({ message: "error in payment services" });
     }
 
     let currentConvId = conversationId;
@@ -64,12 +103,14 @@ export const sendMessage = async (req, res) => {
     });
 
     //Database se is conversation ke purane messages nikalo
-    const chatHistory = await messageModel.find({conversationId:currentConvId}).sort({createdAt: 1});
+    const chatHistory = await messageModel
+      .find({ conversationId: currentConvId })
+      .sort({ createdAt: 1 });
 
     //Data ko us format mein badlo jo AI aasaani se samajh sake
-    const history = chatHistory.map(msg => ({
-      role: msg.role === 'user' ? 'user' : 'model', // Gemini 'ai' ko 'model' bolta hai
-      parts: msg.content
+    const history = chatHistory.map((msg) => ({
+      role: msg.role === "user" ? "user" : "model", // Gemini 'ai' ko 'model' bolta hai
+      parts: msg.content,
     }));
     // console.log(history);
 
@@ -84,10 +125,13 @@ export const sendMessage = async (req, res) => {
       const blob = new Blob([req.file.buffer], { type: req.file.mimetype });
       formData.append("file", blob, req.file.originalname);
 
-      const uploadRes = await fetch("http://localhost:8002/api/agent/upload-pdf", {
-        method: "POST",
-        body: formData,
-      });
+      const uploadRes = await fetch(
+        "http://localhost:8002/api/agent/upload-pdf",
+        {
+          method: "POST",
+          body: formData,
+        },
+      );
 
       const uploadData = await uploadRes.json();
       if (!uploadData.success) {
@@ -105,11 +149,10 @@ export const sendMessage = async (req, res) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        prompt:prompt,
-        history:history
+        prompt: prompt,
+        history: history,
       }),
     });
-
 
     const agentData = await agentResponse.json();
     if (!agentData.success) {
@@ -117,7 +160,6 @@ export const sendMessage = async (req, res) => {
         .status(500)
         .json({ error: "Agent service failed to generate a response" });
     }
-
 
     // 4. AI (Agent) ka response DB mein save karo
     const aiMessage = await messageModel.create({

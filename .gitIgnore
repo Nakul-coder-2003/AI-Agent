@@ -14,6 +14,10 @@ backend/services/agent/.env
 backend/services/chat/node_modules/
 backend/services/chat/.env
 
+## payment server
+backend/services/payment/node_modules/
+backend/services/payment/.env
+
 ## frontend
 frontend/node_modules
 frontend/.env

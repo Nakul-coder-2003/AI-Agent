@@ -43,6 +43,18 @@ app.use("/api/chat",authenticate,proxy(process.env.CHAT_SERVER_URL,{
     }
 }))
 
+app.use("/api/payment", authenticate, proxy("http://localhost:8004", {
+    proxyReqPathResolver: (req) => {
+        return "/api/payment" + req.url;
+    },
+    proxyReqOptDecorator: (proxyReqOpts, srcReq) => {
+        if (srcReq.user) {
+            proxyReqOpts.headers['x-user-id'] = srcReq.user.id || srcReq.user._id;
+        }
+        return proxyReqOpts;
+    }
+}));
+
 app.use("/api/me",authenticate,getCurrentUser);
 
 app.listen(PORT,()=>{
