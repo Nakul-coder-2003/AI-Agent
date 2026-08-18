@@ -59,3 +59,48 @@ The backend is divided into 5 independent services:
 │       └── payment/             # Billing & Stripe (Port 8004)
 ├── frontend/                    # React Vite App
 └── README.md
+
+---
+
+## 🚀 Local Setup & Installation
+
+### 1. Prerequisites
+- Node.js (v18+)
+- Docker Desktop
+- Stripe Account (Test Mode)
+- Gemini API Key & Supabase Project
+
+### 2. Clone the Repository
+```bash
+git clone [https://github.com/Nakul-coder-2003/AI-Agent.git](https://github.com/Nakul-coder-2003/AI-Agent.git)
+cd AI-Agent
+
+### 3. Environment Variables
+# Create a .env file in each respective service folder (gateway, auth, agent, chat, payment).
+```bash
+# Auth & Gateway
+JWT_ACCESS_SECRET=your_secret
+REDIS_URL=redis://127.0.0.1:6379
+
+# Agent Service
+GEMINI_API_KEY=your_gemini_key
+SUPABASE_URL=your_supabase_url
+SUPABASE_PRIVATE_KEY=your_supabase_key
+
+# Payment Service
+STRIPE_SECRET_KEY=sk_test_...
+
+### 4. Start Infrastructure (Redis)
+#Ensure Docker is running, then spin up the required databases:
+```bash
+cd backend
+docker-compose up -d
+
+### 5. Start Microservices
+#Open separate terminals for each service and run:
+```bash
+npm install
+node index.js
+
+### 👨‍💻 Author
+#Built with ❤️ by Nakul Mittal Passionate about Backend Architecture, System Design, and AI Integration.
