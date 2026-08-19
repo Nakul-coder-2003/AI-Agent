@@ -4,7 +4,7 @@ import { forgetPassword, login, logout, resetPassword, signup, verifyOtp } from 
 const authRouter = express.Router();
 
 authRouter.post("/signup",uploadFile.single("profileImg"),signup);
-authRouter.get("/login",login);
+authRouter.post("/login",login);
 authRouter.post("/logout",logout);
 authRouter.post("/forget-password",forgetPassword);
 authRouter.post("/verify-otp",verifyOtp);

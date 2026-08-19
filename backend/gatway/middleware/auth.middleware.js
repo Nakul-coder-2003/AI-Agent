@@ -1,5 +1,5 @@
 import jwt from "jsonwebtoken"
-import redis from "../config/redis.js";
+// import redis from "../config/redis.js";
 
 const authenticate = async(req,res,next) => {
     const token = req.cookies.accessToken || req.headers['authorization']?.split(' ')[1];
@@ -10,10 +10,10 @@ const authenticate = async(req,res,next) => {
 
     try {
         // 1. Check if token is blacklisted in Redis
-        const isBlacklisted = await redis.get(`bl_${token}`);
-        if (isBlacklisted) {
-            return res.status(401).json({ message: "Session expired. Please login again." });
-        }
+        // const isBlacklisted = await redis.get(`bl_${token}`);
+        // if (isBlacklisted) {
+        //     return res.status(401).json({ message: "Session expired. Please login again." });
+        // }
 
         // 2. Verify Token
         const decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET);

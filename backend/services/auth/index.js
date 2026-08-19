@@ -14,6 +14,7 @@ app.use(cookieParser());
 
 app.use("/api/auth",authRouter);
 
+
 app.use(globalErrorHandler);
 
 app.listen(PORT,()=>{

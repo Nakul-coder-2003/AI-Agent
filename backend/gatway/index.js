@@ -13,23 +13,26 @@ const corsOptions = {
     origin: 'http://localhost:5173',
     credentials: true
 }
-app.use(cors());
+app.use(cors(corsOptions));
 app.use(cookieParser());
-app.use(express.json());
+
 
 app.use("/api/auth",proxy(process.env.AUTH_SERVER_URL,{
+    parseReqBody: false,
     proxyReqPathResolver: (req) => {
         return "/api/auth" + req.url;
     }
 }))
 
 app.use("/api/agent",proxy(process.env.AGENT_SERVER_URL,{
+    parseReqBody: false,
     proxyReqPathResolver: (req) => {
         return "/api/agent" + req.url;
     }
 }))
 
 app.use("/api/chat",authenticate,proxy(process.env.CHAT_SERVER_URL,{
+    parseReqBody: false,
     proxyReqPathResolver: (req) => {
         return "/api/chat" + req.url;
     },
@@ -44,6 +47,7 @@ app.use("/api/chat",authenticate,proxy(process.env.CHAT_SERVER_URL,{
 }))
 
 app.use("/api/payment", authenticate, proxy("http://localhost:8004", {
+    parseReqBody: false,
     proxyReqPathResolver: (req) => {
         return "/api/payment" + req.url;
     },
@@ -56,6 +60,7 @@ app.use("/api/payment", authenticate, proxy("http://localhost:8004", {
 }));
 
 app.use("/api/me",authenticate,getCurrentUser);
+app.use(express.json());
 
 app.listen(PORT,()=>{
     console.log(`backend gatway server is running on ${PORT}`)

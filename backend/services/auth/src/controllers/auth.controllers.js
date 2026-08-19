@@ -5,7 +5,7 @@ import { catchAsync } from "../utils/catchAsync.js";
 import generateToken from "../utils/token.js";
 import uploadOnCloudinary from "../config/cloudinary.js";
 import jwt, { decode } from "jsonwebtoken";
-import redis from "../config/redis.js";
+// import redis from "../config/redis.js";
 import { generateAndSaveOtp } from "../utils/sendOtp.js";
 
 
@@ -45,20 +45,26 @@ export const signup = catchAsync(async (req, res, next) => {
   res.cookie("accessToken", accessToken, {
     httpOnly: true,
     secure: false,
-    sameSite: "strict",
+    sameSite: "lax",
     maxAge: 15 * 60 * 1000,
   });
 
   res.cookie("refreshToken", refreshToken, {
     httpOnly: true,
     secure: false,
-    sameSite: "strict",
+    sameSite: "lax",
     maxAge: 7 * 24 * 60 * 60 * 1000,
   });
 
-  res
-    .status(200)
-    .json({ message: "user register successfully!" });
+  res.status(200).json({
+    message: "user signup successfully!",
+    user: {
+      id: newUser._id,
+      userName: newUser.userName,
+      email: newUser.email,
+    },
+  });
+
 });
 
 export const login = catchAsync(async (req, res, next) => {
@@ -81,14 +87,14 @@ export const login = catchAsync(async (req, res, next) => {
   res.cookie("accessToken", accessToken, {
     httpOnly: true,
     secure: false,
-    sameSite: "strict",
+    sameSite: "lax",
     maxAge: 1 * 24 * 60 * 60 * 1000,
   });
 
   res.cookie("refreshToken", refreshToken, {
     httpOnly: true,
     secure: false,
-    sameSite: "strict",
+    sameSite: "lax",
     maxAge: 7 * 24 * 60 * 60 * 1000,
   });
 
@@ -110,9 +116,9 @@ export const logout = catchAsync(async (req, res, next) => {
       const decoded = jwt.decode(token);
       if (decoded && decoded.exp) {
         const expiresIn = decoded.exp - Math.floor(Date.now() / 1000);
-        if (expiresIn > 0) {
-          await redis.setex(`bl_${token}`, expiresIn, "blacklisted");
-        }
+        // if (expiresIn > 0) {
+        //   await redis.setex(`bl_${token}`, expiresIn, "blacklisted");
+        // }
       }
     } catch (error) {
       console.error("Logout Error:", error);
@@ -141,7 +147,7 @@ export const verifyOtp = catchAsync(async (req, res, next) => {
   if (!email || !otp)
     return res.status(400).json({ message: "Email and otp is required" });
 
-  const otpRecord = await redis.get(`otp_${email}`);
+  // const otpRecord = await redis.get(`otp_${email}`);
   
   if (!otpRecord || otpRecord !== otp) {
     return res
@@ -149,7 +155,7 @@ export const verifyOtp = catchAsync(async (req, res, next) => {
       .json({ success: false, message: "Invalid or expired otp" });
   }
 
-  await redis.del(`otp_${email}`);
+  // await redis.del(`otp_${email}`);
 
   return res
     .status(200)
