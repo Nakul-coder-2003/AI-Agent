@@ -5,8 +5,9 @@ import { catchAsync } from "../utils/catchAsync.js";
 import generateToken from "../utils/token.js";
 import uploadOnCloudinary from "../config/cloudinary.js";
 import jwt, { decode } from "jsonwebtoken";
-// import redis from "../config/redis.js";
+import redis from "../config/redis.js";
 import { generateAndSaveOtp } from "../utils/sendOtp.js";
+import { json } from "express";
 
 
 export const signup = catchAsync(async (req, res, next) => {
@@ -70,7 +71,23 @@ export const signup = catchAsync(async (req, res, next) => {
 export const login = catchAsync(async (req, res, next) => {
   const { email, password } = req.body;
 
-  const user = await userModel.findOne({ email }).select("+password");
+  const redisKey = `user:${email}`;
+  let user;
+
+  try {
+    const catchUser = await redis.get(redisKey);
+    if(catchUser){
+      user = JSON.parse(catchUser);
+      // console.log('data fetch using redis:',catchUser);
+    }else{
+      user = await userModel.findOne({ email }).select("+password");
+
+      await redis.setex(redisKey, 86400, JSON.stringify(user));
+    }
+  } catch (redisError) {
+    // Agar Redis fail ho jaye, toh API crash na ho, seedhe MongoDB se fallback karein
+    user = await userModel.findOne({ email }).select("+password");
+  }
 
   if (!user) {
     return next(new AppError("Invalid user", 400));
@@ -116,9 +133,9 @@ export const logout = catchAsync(async (req, res, next) => {
       const decoded = jwt.decode(token);
       if (decoded && decoded.exp) {
         const expiresIn = decoded.exp - Math.floor(Date.now() / 1000);
-        // if (expiresIn > 0) {
-        //   await redis.setex(`bl_${token}`, expiresIn, "blacklisted");
-        // }
+        if (expiresIn > 0) {
+          await redis.setex(`bl_${token}`, expiresIn, "blacklisted");
+        }
       }
     } catch (error) {
       console.error("Logout Error:", error);
@@ -147,7 +164,7 @@ export const verifyOtp = catchAsync(async (req, res, next) => {
   if (!email || !otp)
     return res.status(400).json({ message: "Email and otp is required" });
 
-  // const otpRecord = await redis.get(`otp_${email}`);
+  const otpRecord = await redis.get(`otp_${email}`);
   
   if (!otpRecord || otpRecord !== otp) {
     return res
@@ -155,7 +172,7 @@ export const verifyOtp = catchAsync(async (req, res, next) => {
       .json({ success: false, message: "Invalid or expired otp" });
   }
 
-  // await redis.del(`otp_${email}`);
+  await redis.del(`otp_${email}`);
 
   return res
     .status(200)

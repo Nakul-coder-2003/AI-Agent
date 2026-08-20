@@ -57,7 +57,7 @@ export const sendMessage = async (req, res) => {
           },
         },
       );
-      console.log(paymentRes);
+      // console.log(paymentRes);
       
       //  Agar URL galat hai ya 404 aaya hai, toh HTML parse karne se pehle roko
       if (!paymentRes.ok) {
@@ -70,7 +70,7 @@ export const sendMessage = async (req, res) => {
       }
 
       const paymentData = await paymentRes.json();
-      console.log(paymentData);
+      // console.log(paymentData);
       if (!paymentData.success) {
         return res.status(403).json({
           error: "Insufficient credits. Please recharge your wallet.",
