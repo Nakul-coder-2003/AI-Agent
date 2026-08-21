@@ -1,4 +1,4 @@
-import React, { useContext, useState } from "react";
+import React, { useContext, useEffect, useState } from "react";
 import { AuthContext } from "../context/AuthContext";
 import {
   MessageSquare,
@@ -9,6 +9,7 @@ import {
   Send,
   Menu,
   PanelLeftClose,
+  Trash2,
 } from "lucide-react"; // Icons
 import axios from "axios";
 import ChatBubble from "../components/ChatBubble";
@@ -20,8 +21,82 @@ const Dashboard = () => {
   const [isTyping, setIsTyping] = useState(false); // AI ka loading state
   // Sidebar open hai ya nahi
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [credits, setCredits] = useState(0);
 
-  // 2. Message Bhejne ka Function
+  const [conversations, setConversations] = useState([]); // Sidebar list ke liye
+  const [activeChatId, setActiveChatId] = useState(null); // Current open chat ka ID
+
+  // API Call: Dashboard load hote hi credits fetch karo
+  useEffect(() => {
+    const fetchCredit = async () => {
+      try {
+        const response = await axios.get(
+          "http://localhost:8000/api/payment/balance",
+          {
+            withCredentials: true,
+          },
+        );
+        console.log(response.data);
+        setCredits(response.data.balance || 0);
+      } catch (error) {
+        console.error("Failed to fetch credits:", error);
+      }
+    };
+    fetchCredit();
+  }, []);
+
+  // API Call: Purani chats ki list laane ke liye
+  useEffect(() => {
+    const fetchConversation = async () => {
+      try {
+        const response = await axios.get(
+          "http://localhost:8000/api/chat/conversations",
+          {
+            withCredentials: true,
+          },
+        );
+
+        setConversations(response.data.conversations || []);
+      } catch (error) {
+        console.log("error in fetchConversation", error);
+      }
+    };
+    fetchConversation();
+  }, []);
+
+  // Function 1: New Chat shuru karna
+  const handleNewChat = () => {
+    setMessages([]); // Screen clear
+    setActiveChatId(null); // Koi purani chat select nahi hai
+  };
+
+  // Function 2: Purani chat par click karke uske messages laana
+  const loadConversation = async (chatId) => {
+    try {
+      const response = await axios.get(
+        `http://localhost:8000/api/chat/${chatId}/messages`,
+        {
+          withCredentials: true,
+        },
+      );
+      // console.log(response.data.messages)
+      // console.log(response.data)
+
+      const formattedMessages = (response.data.messages || []).map((msg) => ({
+        // Agar backend 'content' ya 'message' bhejta hai, toh use 'text' bana do
+        text: msg.text || msg.content || msg.message || "",
+        // Agar backend 'role' bhejta hai (user/assistant), toh use 'sender' bana do
+        sender: msg.sender || (msg.role === "user" ? "user" : "ai"),
+      }));
+
+      setMessages(formattedMessages || []);
+      setActiveChatId(chatId);
+    } catch (error) {
+      console.log("error in loadConversation", error);
+    }
+  };
+
+  // Function 3: Message Bhejne ka Function
   const handleSendMessage = async (e) => {
     e.preventDefault();
     if (!input.trim()) return; // Khali message mat bhejo
@@ -35,11 +110,10 @@ const Dashboard = () => {
     try {
       const response = await axios.post(
         "http://localhost:8000/api/chat/message",
-        { prompt: userMsg.text },
+        { prompt: userMsg.text, chatId: activeChatId },
         { withCredentials: true },
       );
-      console.log(response.data);
-      console.log(response.data.aiMessage.content);
+      // console.log(response.data.aiMessage.content);
 
       //AI ka reply list mein add karo
       const aiMsg = {
@@ -47,6 +121,9 @@ const Dashboard = () => {
         sender: "ai",
       };
       setMessages((prev) => [...prev, aiMsg]);
+      if (response.data.chatId && !activeChatId) {
+        setActiveChatId(response.data.chatId);
+      }
     } catch (error) {
       console.error("Agent error:", error);
       // Agar error aaye toh UI mein bata do
@@ -62,6 +139,33 @@ const Dashboard = () => {
     }
   };
 
+  // Function 4: chat delete ka Function
+  const handleDeleteChat = async (e, chatId) => {
+    e.stopPropagation(); // Click ko loadConversation trigger karne se rokne ke liye
+
+    if (!window.confirm("Are you sure you want to delete this chat?")) return;
+
+    try {
+      await axios.delete(
+        `http://localhost:8000/api/chat/conversations/${chatId}`,
+        {
+          withCredentials: true,
+        },
+      );
+
+      // UI se chat hatao
+      setConversations((prev) => prev.filter((c) => c._id !== chatId));
+
+      // Agar wahi chat khuli thi, toh screen clear kar do
+      if (activeChatId === chatId) {
+        handleNewChat();
+      }
+    } catch (error) {
+      console.error("Failed to delete chat:", error);
+      alert("Could not delete chat");
+    }
+  };
+
   return (
     <div className="flex h-screen bg-white">
       {/* ================= LEFT SIDEBAR ================= */}
@@ -72,7 +176,10 @@ const Dashboard = () => {
       >
         {/* Sidebar Top: New Chat Button */}
         <div className="p-4">
-          <button className="flex items-center justify-center w-full gap-2 px-4 py-2 text-sm font-medium text-white transition-colors bg-blue-600 rounded-lg hover:bg-blue-700">
+          <button
+            onClick={handleNewChat}
+            className="flex items-center justify-center w-full gap-2 px-4 py-2 text-sm font-medium text-white transition-colors bg-blue-600 rounded-lg hover:bg-blue-700"
+          >
             <Plus size={18} />
             New Chat
           </button>
@@ -84,11 +191,38 @@ const Dashboard = () => {
             Recent Chats
           </p>
 
-          {/* Dummy Chat Item */}
-          <button className="flex items-center w-full gap-3 px-3 py-2 text-sm text-left text-gray-700 transition-colors rounded-lg hover:bg-gray-200">
-            <MessageSquare size={16} className="text-gray-500" />
-            <span className="truncate">React Frontend Help</span>
-          </button>
+          {conversations.map((conv) => (
+            <div
+              key={conv._id}
+              className={`flex items-center justify-between w-full px-3 py-2 text-sm transition-colors rounded-lg cursor-pointer ${
+                activeChatId === conv._id
+                  ? "bg-blue-100 text-blue-700"
+                  : "text-gray-700 hover:bg-gray-200"
+              }`}
+              onClick={() => loadConversation(conv._id)}
+            >
+              <div className="flex items-center gap-3 overflow-hidden">
+                <MessageSquare
+                  size={16}
+                  className={
+                    activeChatId === conv._id
+                      ? "text-blue-600"
+                      : "text-gray-500 min-w-4"
+                  }
+                />
+                <span className="truncate">{conv.title || "Conversation"}</span>
+              </div>
+
+              {/* NAYA DELETE BUTTON */}
+              <button
+                onClick={(e) => handleDeleteChat(e, conv._id)}
+                className="p-1 text-gray-400 rounded hover:text-red-600 hover:bg-red-50"
+                title="Delete Chat"
+              >
+                <Trash2 size={14} />
+              </button>
+            </div>
+          ))}
         </div>
 
         {/* Sidebar Bottom: User Profile & Logout */}
@@ -139,7 +273,7 @@ const Dashboard = () => {
 
           <div className="flex items-center gap-2 px-3 py-1.5 bg-yellow-50 text-yellow-700 rounded-full border border-yellow-200">
             <Coins size={16} />
-            <span className="text-sm font-bold">100 Credits</span>
+            <span className="text-sm font-bold">{credits}</span>
           </div>
         </header>
 

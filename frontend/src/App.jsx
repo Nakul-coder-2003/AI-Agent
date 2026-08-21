@@ -11,7 +11,7 @@ function App() {
       <div className="min-h-screen bg-gray-100">
         <Routes>
           {/* Default route redirects to Login */}
-          {/* <Route path="/" element={<Navigate to="/login" />} /> */}
+          <Route path="/" element={<Navigate to="/login" />} />
           
           {/* Public Routes (Koi bhi access kar sakta hai) */}
           <Route path="/login" element={<Login />} />

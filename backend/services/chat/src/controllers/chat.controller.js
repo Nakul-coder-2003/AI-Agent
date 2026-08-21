@@ -185,3 +185,28 @@ export const sendMessage = async (req, res) => {
     res.status(500).json({ error: "Failed to process message" });
   }
 };
+
+export const deleteConversation = async (req, res) => {
+  try {
+    const { conversationId } = req.params;
+    // req.user GATEWAY se headers ke through ya local middleware se aayega
+    const userId = req.headers['x-user-id'] || req.user?.id || req.user?._id;
+
+    // 1. Verify user owns this chat
+    const conversation = await conversationModel.findOne({ _id: conversationId, userId });
+    if (!conversation) {
+      return res.status(404).json({ message: "Conversation not found" });
+    }
+
+    // 2. Delete all messages inside this conversation
+    await messageModel.deleteMany({ conversationId });
+
+    // 3. Delete the conversation itself
+    await conversationModel.findByIdAndDelete(conversationId);
+
+    return res.status(200).json({ message: "Chat deleted successfully" });
+  } catch (error) {
+    console.error("Delete Error:", error);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+};
