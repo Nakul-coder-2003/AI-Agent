@@ -198,3 +198,52 @@ export const resetPassword = catchAsync(async (req, res, next) => {
       message: "Password reset successfully. Please login.",
     });
 });
+
+export const getCurrentUser=async (req,res) => {
+    try {
+        const userId = req.user.id || req.user._id;
+      
+        const user = await userModel.findById(userId).select("-password");
+        
+        if (!user) {
+            return res.status(404).json({ message: "User not found" });
+        }
+
+        return res.status(200).json({ user: user });
+    } catch (error) {
+        return res.status(500).json({message:`get current user error ${error}`})
+    }
+}
+
+export const uploadPhoto = async(req,res) => {
+  try {
+    const profile = req.file;
+    if(!profile){
+      return res.status(400).json({message:"profile image not found"})
+    }
+
+    const profileImg = await uploadOnCloudinary(req.file.path);
+    if (!profileImg) {
+      return res.status(500).json({ message: "Failed to upload image to Cloudinary" });
+    }
+
+    const userId = req.user.id || req.user._id;
+    const updateUser = await userModel.findByIdAndUpdate(
+      userId,
+      {profileImg : profileImg},
+      {new:true}
+    ).select("-password");
+
+    if (!updateUser) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    return res.status(200).json({ 
+      message: "Profile photo updated successfully", 
+      user: updateUser 
+    });
+  } catch (error) {
+    console.log(error);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+}

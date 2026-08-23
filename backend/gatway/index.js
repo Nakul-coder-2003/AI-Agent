@@ -3,7 +3,6 @@ import dotenv from "dotenv"
 import proxy from "express-http-proxy";
 import cors from "cors";
 import authenticate from "./middleware/auth.middleware.js";
-import { getCurrentUser } from "./controllers/user.controller.js";
 import cookieParser from "cookie-parser";
 
 const app = express();
@@ -59,7 +58,7 @@ app.use("/api/payment", authenticate, proxy("http://localhost:8004", {
     }
 }));
 
-app.use("/api/me",authenticate,getCurrentUser);
+
 app.use(express.json());
 
 app.listen(PORT,()=>{

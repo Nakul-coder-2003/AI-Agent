@@ -1,4 +1,4 @@
-import React, { useContext, useEffect, useState } from "react";
+import React, { useContext, useEffect, useState, useRef } from "react";
 import { AuthContext } from "../context/AuthContext";
 import {
   MessageSquare,
@@ -10,14 +10,17 @@ import {
   Menu,
   PanelLeftClose,
   Trash2,
+  Paperclip,
+  X,
 } from "lucide-react"; // Icons
 import axios from "axios";
 import ChatBubble from "../components/ChatBubble";
 
 const Dashboard = () => {
-  const { user, logout } = useContext(AuthContext);
+  const { user, setUser, logout } = useContext(AuthContext);
   const [input, setInput] = useState(""); // Input box ki value
   const [messages, setMessages] = useState([]); // Chat history
+  const [selectedAgent, setSelectedAgent] = useState("chat");
   const [isTyping, setIsTyping] = useState(false); // AI ka loading state
   // Sidebar open hai ya nahi
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -26,43 +29,50 @@ const Dashboard = () => {
   const [conversations, setConversations] = useState([]); // Sidebar list ke liye
   const [activeChatId, setActiveChatId] = useState(null); // Current open chat ka ID
 
-  // API Call: Dashboard load hote hi credits fetch karo
+  const fileInputRef = useRef(null);
+  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
+  const [selectedFile, setSelectedFile] = useState(null);
+  const fileAttachmentRef = useRef(null);
+
   useEffect(() => {
-    const fetchCredit = async () => {
-      try {
-        const response = await axios.get(
-          "http://localhost:8000/api/payment/balance",
-          {
-            withCredentials: true,
-          },
-        );
-        console.log(response.data);
-        setCredits(response.data.balance || 0);
-      } catch (error) {
-        console.error("Failed to fetch credits:", error);
-      }
-    };
     fetchCredit();
   }, []);
 
-  // API Call: Purani chats ki list laane ke liye
   useEffect(() => {
-    const fetchConversation = async () => {
-      try {
-        const response = await axios.get(
-          "http://localhost:8000/api/chat/conversations",
-          {
-            withCredentials: true,
-          },
-        );
-
-        setConversations(response.data.conversations || []);
-      } catch (error) {
-        console.log("error in fetchConversation", error);
-      }
-    };
     fetchConversation();
   }, []);
+
+  // API Call: Dashboard load hote hi credits fetch karo
+  const fetchCredit = async () => {
+    try {
+      const response = await axios.get(
+        "http://localhost:8000/api/payment/balance",
+        {
+          withCredentials: true,
+        },
+      );
+      console.log(response.data);
+      setCredits(response.data.balance || 0);
+    } catch (error) {
+      console.error("Failed to fetch credits:", error);
+    }
+  };
+
+  // API Call: Purani chats ki list laane ke liye
+  const fetchConversation = async () => {
+    try {
+      const response = await axios.get(
+        "http://localhost:8000/api/chat/conversations",
+        {
+          withCredentials: true,
+        },
+      );
+
+      setConversations(response.data.conversations || []);
+    } catch (error) {
+      console.log("error in fetchConversation", error);
+    }
+  };
 
   // Function 1: New Chat shuru karna
   const handleNewChat = () => {
@@ -71,10 +81,10 @@ const Dashboard = () => {
   };
 
   // Function 2: Purani chat par click karke uske messages laana
-  const loadConversation = async (chatId) => {
+  const loadConversation = async (conversationId) => {
     try {
       const response = await axios.get(
-        `http://localhost:8000/api/chat/${chatId}/messages`,
+        `http://localhost:8000/api/chat/${conversationId}/messages`,
         {
           withCredentials: true,
         },
@@ -90,7 +100,7 @@ const Dashboard = () => {
       }));
 
       setMessages(formattedMessages || []);
-      setActiveChatId(chatId);
+      setActiveChatId(conversationId);
     } catch (error) {
       console.log("error in loadConversation", error);
     }
@@ -108,21 +118,43 @@ const Dashboard = () => {
     setIsTyping(true); // Loading shuru
 
     try {
+      const formData = new FormData();
+      formData.append("prompt", userMsg.text);
+      formData.append("agentType", selectedAgent);
+
+      if (activeChatId) {
+        formData.append("conversationId", activeChatId);
+      }
+ 
+      if (selectedFile) {
+        formData.append("file", selectedFile); 
+      }
+
       const response = await axios.post(
         "http://localhost:8000/api/chat/message",
-        { prompt: userMsg.text, chatId: activeChatId },
-        { withCredentials: true },
+        formData, // Yahan payload update ho gaya
+        { 
+          withCredentials: true,
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          }
+        },
       );
       // console.log(response.data.aiMessage.content);
+      setSelectedFile(null);
 
       //AI ka reply list mein add karo
       const aiMsg = {
-        text: response.data.aiMessage.content || "Agent responded!",
+        text: response.data.aiMessage?.content || "Agent responded!",
         sender: "ai",
       };
       setMessages((prev) => [...prev, aiMsg]);
-      if (response.data.chatId && !activeChatId) {
-        setActiveChatId(response.data.chatId);
+
+      // Naya chat bana hai, toh ID save karo aur sidebar update karo
+      if (response.data.conversationId && !activeChatId) {
+        setActiveChatId(response.data.conversationId);
+        fetchConversation();
+        fetchCredit();
       }
     } catch (error) {
       console.error("Agent error:", error);
@@ -140,29 +172,63 @@ const Dashboard = () => {
   };
 
   // Function 4: chat delete ka Function
-  const handleDeleteChat = async (e, chatId) => {
+  const handleDeleteChat = async (e, conversationId) => {
     e.stopPropagation(); // Click ko loadConversation trigger karne se rokne ke liye
 
     if (!window.confirm("Are you sure you want to delete this chat?")) return;
 
     try {
       await axios.delete(
-        `http://localhost:8000/api/chat/conversations/${chatId}`,
+        `http://localhost:8000/api/chat/conversations/${conversationId}`,
         {
           withCredentials: true,
         },
       );
 
       // UI se chat hatao
-      setConversations((prev) => prev.filter((c) => c._id !== chatId));
+      setConversations((prev) => prev.filter((c) => c._id !== conversationId));
 
       // Agar wahi chat khuli thi, toh screen clear kar do
-      if (activeChatId === chatId) {
+      if (activeChatId === conversationId) {
         handleNewChat();
       }
     } catch (error) {
       console.error("Failed to delete chat:", error);
       alert("Could not delete chat");
+    }
+  };
+
+  //function 5: upload profile photo
+  const handlePhotoUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    // File ko backend bhejne ke liye FormData banaya
+    const formData = new FormData();
+    formData.append("profileImg", file);
+    setIsUploadingPhoto(true);
+
+    try {
+      const response = await axios.post(
+        "http://localhost:8000/api/auth/upload-profile",
+        formData,
+        {
+          withCredentials: true,
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        },
+      );
+
+      const updatedUser = response.data.user;
+      setUser(updatedUser);
+      localStorage.setItem("user", JSON.stringify(updatedUser));
+      alert("Profile photo updated successfully!");
+    } catch (error) {
+      console.error("Photo upload error:", error);
+      alert("Failed to upload photo.");
+    } finally {
+      setIsUploadingPhoto(false);
     }
   };
 
@@ -226,16 +292,55 @@ const Dashboard = () => {
         </div>
 
         {/* Sidebar Bottom: User Profile & Logout */}
+        {/* Sidebar Bottom: User Profile & Logout */}
         <div className="p-4 border-t border-gray-200">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2 overflow-hidden">
-              <div className="flex items-center justify-center w-8 h-8 text-white bg-blue-500 rounded-full shrink-0">
-                {user?.userName?.charAt(0).toUpperCase()}
+            {/* User Profile Section (Clickable) */}
+            <div
+              className="flex items-center gap-2 overflow-hidden cursor-pointer group"
+              onClick={() => fileInputRef.current.click()}
+              title="Click to change profile photo"
+            >
+              <div className="relative flex items-center justify-center w-10 h-10 text-white bg-blue-500 rounded-full shrink-0 overflow-hidden">
+                {isUploadingPhoto ? (
+                  <div className="w-5 h-5 border-2 border-white rounded-full border-t-transparent animate-spin"></div>
+                ) : user?.profileImg ? (
+                  // Agar photo hai toh wo dikhao
+                  <img
+                    src={user.profileImg}
+                    alt="Profile"
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  // Warna naam ka pehla letter
+                  <span className="text-lg font-semibold">
+                    {user?.userName?.charAt(0).toUpperCase()}
+                  </span>
+                )}
+
+                {/* Hover Overlay */}
+                <div className="absolute inset-0 bg-black bg-opacity-40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                  <Plus size={16} className="text-white" />
+                </div>
               </div>
-              <span className="text-sm font-medium text-gray-700 truncate">
-                {user?.userName}
-              </span>
+
+              <div className="flex flex-col overflow-hidden">
+                <span className="text-sm font-medium text-gray-700 truncate">
+                  {user?.userName}
+                </span>
+                {/* <span className="text-xs text-gray-500 truncate">{user?.email}</span> // Agar email dikhana ho toh */}
+              </div>
             </div>
+
+            {/* Hidden File Input */}
+            <input
+              type="file"
+              accept="image/*"
+              className="hidden"
+              ref={fileInputRef}
+              onChange={handlePhotoUpload}
+            />
+
             <button
               onClick={logout}
               className="p-2 text-gray-500 transition-colors rounded-lg hover:text-red-600 hover:bg-red-50"
@@ -313,26 +418,78 @@ const Dashboard = () => {
           )}
         </main>
 
-        {/* Dynamic Input Area (Bottom) */}
+        {/* Bottom Input Area */}
         <div className="p-4 bg-white border-t border-gray-200">
-          <form onSubmit={handleSendMessage} className="max-w-4xl mx-auto">
-            <div className="relative flex items-center">
-              {/* Input field ko state se connect kiya */}
+          {/* Agar file select hui hai, toh uska preview/naam dikhao */}
+          {selectedFile && (
+            <div className="flex items-center gap-2 mb-2 px-3 py-1.5 bg-blue-50 text-blue-700 w-fit rounded-lg text-sm border border-blue-200">
+              <span className="truncate max-w-[200px]">
+                {selectedFile.name}
+              </span>
+              <button
+                onClick={() => setSelectedFile(null)}
+                className="hover:text-red-500"
+              >
+                <X size={14} />
+              </button>
+            </div>
+          )}
+
+          <form
+            onSubmit={handleSendMessage}
+            className="flex items-center gap-3"
+          >
+            <div className="flex items-center flex-1 gap-2 px-3 py-2 bg-gray-50 border border-gray-300 rounded-xl focus-within:ring-2 focus-within:ring-blue-500 transition-all">
+              {/* Agent Dropdown */}
+              <select
+                value={selectedAgent}
+                onChange={(e) => setSelectedAgent(e.target.value)}
+                className="bg-transparent text-sm font-medium text-gray-600 outline-none border-r border-gray-300 pr-2 cursor-pointer hover:text-blue-600"
+              >
+                <option value="chat">Chat Agent</option>
+                <option value="coding">Coding Agent</option>
+                <option value="search">Web Search</option>
+                <option value="pdfRag">PDF RAG</option>
+                <option value="image">Image Gen</option>
+              </select>
+
+              {/* Hidden File Input */}
+              <input
+                type="file"
+                ref={fileAttachmentRef}
+                onChange={(e) => setSelectedFile(e.target.files[0])}
+                className="hidden"
+                accept=".pdf,.png,.jpg,.jpeg" // Apni requirement ke hisaab se adjust karein
+              />
+
+              {/* Attachment Button */}
+              <button
+                type="button"
+                onClick={() => fileAttachmentRef.current.click()}
+                className="p-1 text-gray-400 hover:text-blue-600 transition-colors ml-1"
+                title="Attach File"
+              >
+                <Paperclip size={18} />
+              </button>
+
+              {/* Text Input */}
               <input
                 type="text"
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
-                placeholder="Message your AI Agent..."
-                className="w-full py-3 pl-4 pr-12 text-gray-700 bg-gray-100 border-none rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                placeholder={`Message your ${selectedAgent} agent...`}
+                className="flex-1 bg-transparent outline-none placeholder-gray-400 text-gray-700 ml-1"
+                disabled={isTyping}
               />
-              <button
-                type="submit"
-                disabled={isTyping || !input.trim()}
-                className="absolute right-2 p-2 text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:bg-blue-300"
-              >
-                <Send size={16} />
-              </button>
             </div>
+
+            <button
+              type="submit"
+              disabled={isTyping || (!input.trim() && !selectedFile)}
+              className="p-3 text-white transition-colors bg-blue-600 rounded-xl hover:bg-blue-700 disabled:opacity-50"
+            >
+              <Send size={20} />
+            </button>
           </form>
         </div>
       </div>

@@ -1,26 +1,30 @@
-
 import React, { useState, useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
 
 const ChatBubble = ({ msg, isLatest }) => {
-  const [displayedText, setDisplayedText] = useState(
-    msg.sender === 'user' || !isLatest ? msg.text : ''
-  );
+  // Shuru mein khali string rakhein
+  const [displayedText, setDisplayedText] = useState("");
 
   useEffect(() => {
-    if (msg.sender === 'user' || !isLatest) return;
+    // FIX 3: Agar user ka message hai ya history load hui hai, toh turant pura text dikhao
+    if (msg.sender === 'user' || !isLatest) {
+      setDisplayedText(msg.text);
+      return;
+    }
 
+    // AI ka naya message aane par hi typewriter chalao
     let i = 0;
+    setDisplayedText(""); // Naya animation shuru hone se pehle purana text clean karo
     const interval = setInterval(() => {
-      setDisplayedText(msg.text.slice(0, i));
+      setDisplayedText(msg.text.slice(0, i + 1));
       i++;
-      if (i > msg.text.length) {
+      if (i >= msg.text.length) {
         clearInterval(interval);
       }
     }, 15);
 
     return () => clearInterval(interval);
-  }, [msg.text, isLatest, msg.sender]);
+  }, [msg.text, isLatest, msg.sender]); // Dependency array mein msg.text add kiya hai taaki text badalte hi UI update ho
 
   return (
     <div className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
