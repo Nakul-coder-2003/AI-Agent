@@ -2,6 +2,17 @@ import { getModel } from "../config/llmModels.js";
 import { SystemMessage } from "@langchain/core/messages";
 
 const router = async (state) => {
+  const requestedAgent = state.agentType;
+
+  const validAgents = ["coding", "imageAnalyzer", "search", "chat", "pdfRag"];
+
+  if (requestedAgent && validAgents.includes(requestedAgent)) {
+    console.log(`🚀 Direct Routing via Frontend: ${requestedAgent}`);
+    return requestedAgent;
+  }
+
+  console.log("🤖 Frontend didn't specify agent, using LLM router...");
+
   const messages = state.messages;
   const lastMessage = messages[messages.length - 1];
 
@@ -18,22 +29,21 @@ const router = async (state) => {
     
     CRITICAL: You must respond ONLY with the exact single word name of the agent. Do not add any extra punctuation, spaces, or words.`;
 
-    // 4. LLM se pucho ki kahan route karein
-    const response = await llm.invoke([
-        new SystemMessage(systemPrompt),
-        lastMessage
-    ]);
+  // 4. LLM se pucho ki kahan route karein
+  const response = await llm.invoke([
+    new SystemMessage(systemPrompt),
+    lastMessage,
+  ]);
 
-    // 5. LLM ka answer clean karna
-    const nextAgent = response.content.trim();
-    console.log("🚦 Router decided the next agent will be:", nextAgent);
+  // 5. LLM ka answer clean karna
+  const nextAgent = response.content.trim();
+  console.log("🚦 Router decided the next agent will be:", nextAgent);
 
-    const validAgents = ["coding", "imageAnalyzer", "search", "chat","pdfRag"];
-    if (validAgents.includes(nextAgent)) {
-        return nextAgent;
-    }
+  if (validAgents.includes(nextAgent)) {
+    return nextAgent;
+  }
 
-    return "chat";
+  return "chat";
 };
 
 export default router;

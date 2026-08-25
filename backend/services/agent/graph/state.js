@@ -7,6 +7,10 @@ const AgentState = Annotation.Root({
             return currState.concat(newMessage);
         },
         default: () => []
+    }),
+    agentType: Annotation({
+        reducer: (currState, newValue) => newValue ?? currState,
+        default: () => "chat"
     })
 })
 

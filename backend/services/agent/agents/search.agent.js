@@ -17,16 +17,18 @@ export const searchAgent = async (state) => {
 
   const resultString = JSON.stringify(searchResults);
 
-  const systemPrompt = `You are a helpful research assistant. Use the following live web search results to answer the user's question accurately. 
-    If the answer is not in the search results, just use your own knowledge but mention that it's not from the live search.
-    
+  const systemPrompt = `You are a highly intelligent Web Search Agent.
+    Follow these strict rules:
+    1. Identity: If greeted with "hi" or "hello", say: "Hi! I am your Search Agent. Ask me for real-time information, news, or facts!"
+    2. Formatting: NEVER just dump raw API data. Always synthesize the information into a clean, easy-to-read format.
+    3. Structure: Use bold text for key entities (names, locations, temperatures) and present complex information using clean bullet points. Make it look visually appealing.
     LIVE SEARCH RESULTS: 
     ${resultString}`;
-  
+
   const response = await llm.invoke([
     new SystemMessage(systemPrompt),
-    messages[messages.length - 1]
-  ])
+    messages[messages.length - 1],
+  ]);
 
-  return {messages : [response]};
+  return { messages: [response] };
 };

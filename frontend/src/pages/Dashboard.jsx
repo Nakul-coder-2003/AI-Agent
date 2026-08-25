@@ -423,7 +423,7 @@ const Dashboard = () => {
           {/* Agar file select hui hai, toh uska preview/naam dikhao */}
           {selectedFile && (
             <div className="flex items-center gap-2 mb-2 px-3 py-1.5 bg-blue-50 text-blue-700 w-fit rounded-lg text-sm border border-blue-200">
-              <span className="truncate max-w-[200px]">
+              <span className="truncate">
                 {selectedFile.name}
               </span>
               <button
@@ -449,7 +449,7 @@ const Dashboard = () => {
                 <option value="chat">Chat Agent</option>
                 <option value="coding">Coding Agent</option>
                 <option value="search">Web Search</option>
-                <option value="pdfRag">PDF RAG</option>
+                <option value="pdfRag">PDF Agent</option>
                 <option value="image">Image Gen</option>
               </select>
 

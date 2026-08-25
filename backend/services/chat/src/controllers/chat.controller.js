@@ -39,7 +39,7 @@ export const getMessages = async (req, res) => {
 export const sendMessage = async (req, res) => {
   try {
     const userId = req.user.id;
-    const { prompt, conversationId } = req.body;
+    const { prompt, conversationId,agentType } = req.body;
 
     if (!prompt) {
       return res.status(400).json({ error: "Prompt is required" });
@@ -151,6 +151,7 @@ export const sendMessage = async (req, res) => {
       body: JSON.stringify({
         prompt: prompt,
         history: history,
+        agentType: agentType || "chat"
       }),
     });
 

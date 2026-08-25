@@ -39,7 +39,35 @@ const ChatBubble = ({ msg, isLatest }) => {
           <p>{displayedText}</p>
         ) : (
           <div className="prose prose-sm max-w-none prose-blue">
-            <ReactMarkdown>{displayedText}</ReactMarkdown>
+            <ReactMarkdown
+              components={{
+                code({ node, inline, className, children, ...props }) {
+                  const match = /language-(\w+)/.exec(className || '');
+                  return !inline && match ? (
+                    // 1. Dark Mode Code Block
+                    <div className="overflow-hidden border border-gray-700 rounded-lg my-4">
+                      {/* Language header (e.g., cpp, python) */}
+                      <div className="bg-gray-800 text-gray-400 px-4 py-1.5 text-xs font-mono uppercase border-b border-gray-700">
+                        {match[1]}
+                      </div>
+                      {/* Actual Code */}
+                      <pre className="bg-gray-900 p-4 overflow-x-auto text-gray-100 text-sm font-mono m-0">
+                        <code className={className} {...props}>
+                          {children}
+                        </code>
+                      </pre>
+                    </div>
+                  ) : (
+                    // 2. Inline Code (Light red/gray style)
+                    <code className="bg-gray-200 text-red-600 px-1.5 py-0.5 rounded text-sm font-mono" {...props}>
+                      {children}
+                    </code>
+                  );
+                }
+              }}
+            >
+              {displayedText}
+            </ReactMarkdown>
           </div>
         )}
       </div>

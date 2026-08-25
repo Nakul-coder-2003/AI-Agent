@@ -32,7 +32,8 @@ export const agentController = async (req, res) => {
     const allMessages = [...formattedHistory, new HumanMessage(prompt)];
 
     const result = await graph.invoke({
-      messages: allMessages
+      messages: allMessages,
+      agentType: req.body.agentType
     });
 
     const finalMessage = result.messages[result.messages.length - 1].content;
