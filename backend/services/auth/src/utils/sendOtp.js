@@ -1,4 +1,4 @@
-// import redis from "../config/redis.js";
+import redis from "../config/redis.js";
 import { catchAsync } from "./catchAsync.js";
 
 export const generateAndSaveOtp = catchAsync(async(email)=>{

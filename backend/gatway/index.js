@@ -45,7 +45,7 @@ app.use("/api/chat",authenticate,proxy(process.env.CHAT_SERVER_URL,{
     }
 }))
 
-app.use("/api/payment", authenticate, proxy("http://localhost:8004", {
+app.use("/api/payment", authenticate, proxy(process.env.PAYMENT_SERVER_URL, {
     parseReqBody: false,
     proxyReqPathResolver: (req) => {
         return "/api/payment" + req.url;
