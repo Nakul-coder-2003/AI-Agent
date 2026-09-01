@@ -1,5 +1,7 @@
 import { conversationModel } from "../models/conversation.model.js";
 import { messageModel } from "../models/message.model.js";
+import dotenv from dotenv;
+dotenv.config();
 
 // 1. User ki saari conversations (chats) fetch karna
 export const getConversations = async (req, res) => {
@@ -48,7 +50,7 @@ export const sendMessage = async (req, res) => {
     try {
       console.log("💳 Checking wallet balance...");
       const paymentRes = await fetch(
-        "http://localhost:8004/api/payment/deduct",
+        process.env.PAYMENT_SERVICE_DEDUCT,
         {
           method: "POST",
           headers: {
@@ -126,7 +128,7 @@ export const sendMessage = async (req, res) => {
       formData.append("file", blob, req.file.originalname);
 
       const uploadRes = await fetch(
-        "http://localhost:8002/api/agent/upload-pdf",
+        process.env.AGENT_SERVICE_UPLOAD_PDF,
         {
           method: "POST",
           body: formData,
@@ -143,7 +145,7 @@ export const sendMessage = async (req, res) => {
     }
 
     // 3. File process hone ke baad (ya agar file nahi thi), Prompt Agent ko bhejo
-    const agentResponse = await fetch("http://localhost:8002/api/agent/chat", {
+    const agentResponse = await fetch(process.env.AGENT_SERVICE_CHAT, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
