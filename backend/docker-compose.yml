@@ -58,9 +58,9 @@ services:
       - "8000:8000"
     depends_on:
       - redis
-      - auth_service
-      - agent_service
-      - chat_service
-      - payment_service
+      - auth-service
+      - agent-service
+      - chat-service
+      - payment-service
     env_file:
       - ./gatway/.env
