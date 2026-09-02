@@ -15,7 +15,7 @@ services:
     depends_on:
       - redis
     env_file:
-      - ./services/auth/.env_file
+      - ./services/auth/.env
 
   # 3. Agent Service
   agent-service:
@@ -26,7 +26,7 @@ services:
     depends_on:
       - redis
     env_file:
-      - ./services/agent/.env_file
+      - ./services/agent/.env
 
   # 4. chat services
   chat-service:
@@ -37,7 +37,7 @@ services:
     depends_on:
       - redis
     env_file:
-      - ./services/chat/.env_file
+      - ./services/chat/.env
 
   # 5. payment service
   payment-service:
@@ -48,7 +48,7 @@ services:
     depends_on:
       - redis
     env_file:
-      - ./services/payment/.env_file
+      - ./services/payment/.env
 
   # 6. gateway service
   gateway:
