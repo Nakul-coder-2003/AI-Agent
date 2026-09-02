@@ -1,6 +1,6 @@
 import { conversationModel } from "../models/conversation.model.js";
 import { messageModel } from "../models/message.model.js";
-import dotenv from dotenv;
+import dotenv from "dotenv";
 dotenv.config();
 
 // 1. User ki saari conversations (chats) fetch karna
