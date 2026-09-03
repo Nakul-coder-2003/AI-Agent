@@ -9,7 +9,7 @@ const app = express();
 dotenv.config();
 const PORT = process.env.PORT;
 const corsOptions = {
-    origin: 'http://localhost:5173',
+    origin: ["http://localhost:5173", "http://nakul-ai-agent-frontend.s3-website-us-east-1.amazonaws.com"],
     credentials: true
 }
 app.use(cors(corsOptions));
