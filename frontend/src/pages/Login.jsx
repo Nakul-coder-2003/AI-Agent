@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import {AuthContext} from '../context/AuthContext'
+import axiosInstance from '../utils/axiosInstance';
 
 const Login = () => {
   const navigate = useNavigate();
@@ -18,14 +19,12 @@ const Login = () => {
     setLoading(true);
     
     try {
-      // Direct Axios Call
-      const response = await axios.post('http://localhost:8000/api/auth/login', 
-        { email, password }, // Body data
+      const response = await axiosInstance.post("/auth/login",
+        { email, password },
         { 
-          withCredentials: true, // Zaroori hai cookies (accessToken) accept karne ke liye
           headers: { 'Content-Type': 'application/json' }
         }
-      );
+      )
 
       setUser(response.data.user);
       localStorage.setItem('user',JSON.stringify(response.data.user));

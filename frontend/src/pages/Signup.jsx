@@ -2,6 +2,7 @@ import React, { useContext, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { AuthContext } from '../context/AuthContext';
+import axiosInstance from '../utils/axiosInstance';
 
 const Signup = () => {
   const navigate = useNavigate();
@@ -44,16 +45,16 @@ const Signup = () => {
         data.append('profileImg', formData.profileImg);
       }
 
-      // Direct Axios Call
-      const response = await axios.post('http://localhost:8000/api/auth/signup', data, {
-        withCredentials: true, // Cookies ke liye
-        headers: { 'Content-Type': 'multipart/form-data' }
-      });
-      // console.log(response);
+      const response = await axiosInstance.post("/auth/signup",
+        data,
+        { 
+          headers: { 'Content-Type': 'application/json' }
+        }
+      )
+      
       setUser(response.data.user);
 
       alert('Signup successful! You can now log in.');
-      // console.log('Success:', response.data);
       navigate('/dashboard');
     } catch (err) {
       console.error(err);

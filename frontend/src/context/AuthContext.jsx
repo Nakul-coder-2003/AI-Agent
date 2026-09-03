@@ -1,5 +1,6 @@
 import { createContext, useEffect, useState } from "react";
 import axios from "axios"
+import axiosInstance from "../utils/axiosInstance";
 // Step 1: Context Create kiya
 export const AuthContext = createContext()
 
@@ -24,10 +25,7 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     const checkUserLoggedIn = async () => {
       try {
-        const response = await axios.get('http://localhost:8000/api/auth/curr-user', {
-          withCredentials: true // Cookies (token) bhejne ke liye zaroori hai
-        });
-        
+        const response = await axiosInstance.get('/auth/curr-user');
         setUser(response.data.user);
         localStorage.setItem('user',JSON.stringify(response.data.user));
       } catch (error) {

@@ -15,6 +15,7 @@ import {
 } from "lucide-react"; // Icons
 import axios from "axios";
 import ChatBubble from "../components/ChatBubble";
+import axiosInstance from "../utils/axiosInstance";
 
 const Dashboard = () => {
   const { user, setUser, logout } = useContext(AuthContext);
@@ -45,12 +46,7 @@ const Dashboard = () => {
   // API Call: Dashboard load hote hi credits fetch karo
   const fetchCredit = async () => {
     try {
-      const response = await axios.get(
-        "http://localhost:8000/api/payment/balance",
-        {
-          withCredentials: true,
-        },
-      );
+      const response = await axiosInstance.get("/payment/balance");
       console.log(response.data);
       setCredits(response.data.balance || 0);
     } catch (error) {
@@ -61,13 +57,7 @@ const Dashboard = () => {
   // API Call: Purani chats ki list laane ke liye
   const fetchConversation = async () => {
     try {
-      const response = await axios.get(
-        "http://localhost:8000/api/chat/conversations",
-        {
-          withCredentials: true,
-        },
-      );
-
+      const response = await axiosInstance.get("/chat/conversations");
       setConversations(response.data.conversations || []);
     } catch (error) {
       console.log("error in fetchConversation", error);
@@ -83,15 +73,9 @@ const Dashboard = () => {
   // Function 2: Purani chat par click karke uske messages laana
   const loadConversation = async (conversationId) => {
     try {
-      const response = await axios.get(
-        `http://localhost:8000/api/chat/${conversationId}/messages`,
-        {
-          withCredentials: true,
-        },
+      const response = await axiosInstance.get(
+        `/chat/${conversationId}/messages`,
       );
-      // console.log(response.data.messages)
-      // console.log(response.data)
-
       const formattedMessages = (response.data.messages || []).map((msg) => ({
         // Agar backend 'content' ya 'message' bhejta hai, toh use 'text' bana do
         text: msg.text || msg.content || msg.message || "",
@@ -125,21 +109,16 @@ const Dashboard = () => {
       if (activeChatId) {
         formData.append("conversationId", activeChatId);
       }
- 
+
       if (selectedFile) {
-        formData.append("file", selectedFile); 
+        formData.append("file", selectedFile);
       }
 
-      const response = await axios.post(
-        "http://localhost:8000/api/chat/message",
-        formData, // Yahan payload update ho gaya
-        { 
-          withCredentials: true,
-          headers: {
-            'Content-Type': 'multipart/form-data',
-          }
+      const response = await axiosInstance.post("/chat/message", formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
         },
-      );
+      });
       // console.log(response.data.aiMessage.content);
       setSelectedFile(null);
 
@@ -178,12 +157,7 @@ const Dashboard = () => {
     if (!window.confirm("Are you sure you want to delete this chat?")) return;
 
     try {
-      await axios.delete(
-        `http://localhost:8000/api/chat/conversations/${conversationId}`,
-        {
-          withCredentials: true,
-        },
-      );
+      await axiosInstance.delete(`/chat/conversations/${conversationId}`);
 
       // UI se chat hatao
       setConversations((prev) => prev.filter((c) => c._id !== conversationId));
@@ -209,16 +183,11 @@ const Dashboard = () => {
     setIsUploadingPhoto(true);
 
     try {
-      const response = await axios.post(
-        "http://localhost:8000/api/auth/upload-profile",
-        formData,
-        {
-          withCredentials: true,
-          headers: {
-            "Content-Type": "multipart/form-data",
-          },
+      const response = await axiosInstance.post("/auth/upload-profile", formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
         },
-      );
+      });
 
       const updatedUser = response.data.user;
       setUser(updatedUser);
@@ -423,9 +392,7 @@ const Dashboard = () => {
           {/* Agar file select hui hai, toh uska preview/naam dikhao */}
           {selectedFile && (
             <div className="flex items-center gap-2 mb-2 px-3 py-1.5 bg-blue-50 text-blue-700 w-fit rounded-lg text-sm border border-blue-200">
-              <span className="truncate">
-                {selectedFile.name}
-              </span>
+              <span className="truncate">{selectedFile.name}</span>
               <button
                 onClick={() => setSelectedFile(null)}
                 className="hover:text-red-500"
