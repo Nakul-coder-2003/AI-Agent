@@ -58,8 +58,8 @@ app.use("/api/payment", authenticate, proxy(process.env.PAYMENT_SERVER_URL, {
     }
 }));
 
-app.get("/gatwat-api",(req,res)=>{
-    res.send("welcome in gatwway micro-services!")
+app.get("/gatewat-api",(req,res)=>{
+    res.send("welcome in gateway micro-services!")
 })
 
 app.use(express.json());
