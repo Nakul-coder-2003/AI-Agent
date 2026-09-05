@@ -1,6 +1,6 @@
 import express from "express"
 import dotenv from "dotenv"
-import ConnectPaymentDB from "../payment/src/config/database.js";
+import ConnectPaymentDB from "./src/config/database.js";
 import router from "./src/routes/payment.route.js";
 
 const app = express();
