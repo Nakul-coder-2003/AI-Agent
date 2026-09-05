@@ -1,6 +1,7 @@
+import crypto from "crypto"
+globalThis.crypto = crypto;
 import express from "express";
 import dotenv from "dotenv";
-import cors from "cors";
 import ConnectDB from "./src/config/database.js";
 import chatRouter from "./src/router/chat.router.js";
 
@@ -9,7 +10,7 @@ dotenv.config();
 const app = express();
 
 app.use(express.json());
-// app.use(cors());
+
 
 app.get("/api/chat", (req, res) => {
   res.status(200).json({
